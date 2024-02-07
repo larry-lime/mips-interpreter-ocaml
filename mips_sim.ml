@@ -85,21 +85,21 @@ let step_beq (state : state) (r1 : reg) (r2 : reg) (imm : int32) =
 
 let rec interp (state : state) : state =
   let open Int32 in
-  let instruction_word = load_next_instruction init_state.pc init_state.m in
-  if instruction_word = zero then init_state
+  let instruction_word = load_next_instruction state.pc state.m in
+  if instruction_word = zero then state
   else
     let instruction = decode_instruction instruction_word in
     let updated_state =
       match instruction with
-      | Add (r1, r2, r3) -> step_add init_state r1 r2 r3
-      (* | Beq (r1, r2, imm) -> step_beq init_state r1 r2 imm *)
+      | Add (r1, r2, r3) -> step_add state r1 r2 r3
+      | Beq (r1, r2, imm) -> step_beq state r1 r2 imm
       (* | Jr r -> step_jr init_state r *)
       (* | Jal imm -> step_jal init_state imm *)
-      | Li (r, imm) -> step_li init_state r imm
-      | Lui (r, imm) -> step_lui init_state r imm
-      | Ori (r1, r2, imm) -> step_ori init_state r1 r2 imm
-      | Lw (r1, r2, imm) -> step_lw init_state r1 r2 imm
-      | Sw (r1, r2, imm) -> step_sw init_state r1 r2 imm
+      | Li (r, imm) -> step_li state r imm
+      | Lui (r, imm) -> step_lui state r imm
+      | Ori (r1, r2, imm) -> step_ori state r1 r2 imm
+      | Lw (r1, r2, imm) -> step_lw state r1 r2 imm
+      | Sw (r1, r2, imm) -> step_sw state r1 r2 imm
       | _ -> raise FatalError
     in
     let updated_state = { updated_state with pc = add updated_state.pc 4l } in
