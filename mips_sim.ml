@@ -39,14 +39,21 @@ let decode_instruction (instruction : int32) =
         let i_imm = logand instruction 0xFFFFl in
         I { i_opcode = opcode; i_rs; i_rt; i_imm })
 
-(* Define separate functions for executing each instruction, e.g., *)
-let step_add state rd rs rt =
-  (* Implement the semantics of the ADD instruction *)
-  raise TODO
+let step_add state r1 r2 r3 =
+  let sum =
+    Int32.add (rf_lookup (reg2ind r2) state.r) (rf_lookup (reg2ind r3) state.r)
+  in
+  let updated_rf = rf_update (reg2ind r1) sum state.r in
+  { state with r = updated_rf }
 
-(* Define separate functions for executing each instruction, e.g., *)
+let step_ori (state : state) (r1 : reg) (r2 : reg) (imm : int32) =
+  let imm_or = Int32.logor (rf_lookup (reg2ind r2) state.r) imm in
+  let updated_rf = rf_update (reg2ind r1) imm_or state.r in
+  { state with r = updated_rf }
+
 let step_lui (state : state) (r : reg) (imm : int32) =
-  let updated_rf = rf_update (reg2ind r) imm state.r in
+  let imm_shifted = Int32.shift_left imm 16 in
+  let updated_rf = rf_update (reg2ind r) imm_shifted state.r in
   { state with r = updated_rf }
 
 let rec interp (init_state : state) : state =
