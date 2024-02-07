@@ -75,7 +75,15 @@ let step_sw (state : state) (r1 : reg) (r2 : reg) (imm : int32) =
   in
   { state with m = updated_mem }
 
-let rec interp (init_state : state) : state =
+let step_beq (state : state) (r1 : reg) (r2 : reg) (imm : int32) =
+  let r1_val = rf_lookup (reg2ind r1) state.r in
+  let r2_val = rf_lookup (reg2ind r2) state.r in
+  if Int32.equal r1_val r2_val then
+    let updated_pc = Int32.add (Int32.add state.pc 8l) imm in
+    { state with pc = updated_pc }
+  else state
+
+let rec interp (state : state) : state =
   let open Int32 in
   let instruction_word = load_next_instruction init_state.pc init_state.m in
   if instruction_word = zero then init_state
