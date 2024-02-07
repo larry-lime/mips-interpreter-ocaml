@@ -16,14 +16,12 @@ exception FatalError
 let load_next_instruction pc memory = rev_endianess (read_word memory pc)
 
 let decode_instruction (instruction : int32) =
-  (* Implement decoding of a word into a MIPS instruction *)
-  (*Shift word*)
   let open Int32 in
   let opcode = logand (shift_right instruction 26) 0x3fl in
   instformat2ins
     (match opcode with
     | 0l ->
-        (* TODO: Check that this is right *)
+        (* TODO: Make sure this is right *)
         let r_rs = logand (shift_right instruction 21) 0x1Fl in
         let r_rt = logand (shift_right instruction 16) 0x1Fl in
         let r_rd = logand (shift_right instruction 11) 0x1Fl in
@@ -56,6 +54,27 @@ let step_lui (state : state) (r : reg) (imm : int32) =
   let updated_rf = rf_update (reg2ind r) imm_shifted state.r in
   { state with r = updated_rf }
 
+let step_li (state : state) (r : reg) (imm : int32) =
+  let updated_rf = rf_update (reg2ind r) imm state.r in
+  { state with r = updated_rf }
+
+let step_lw (state : state) (r1 : reg) (r2 : reg) (imm : int32) =
+  let curPos = Int32.add (rf_lookup (reg2ind r2) state.r) imm in
+  let word = read_word state.m curPos in
+  let updated_rf = rf_update (reg2ind r1) word state.r in
+  { state with r = updated_rf }
+
+let step_sw (state : state) (r1 : reg) (r2 : reg) (imm : int32) =
+  let curPos = Int32.add (rf_lookup (reg2ind r2) state.r) imm in
+  let curWord = rf_lookup (reg2ind r1) state.r in
+  let updated_mem =
+    mem_update curPos (getByte curWord 0)
+      (mem_update (Int32.add curPos 1l) (getByte curWord 1)
+         (mem_update (Int32.add curPos 2l) (getByte curWord 2)
+            (mem_update (Int32.add curPos 3l) (getByte curWord 3) state.m)))
+  in
+  { state with m = updated_mem }
+
 let rec interp (init_state : state) : state =
   let open Int32 in
   let instruction_word = load_next_instruction init_state.pc init_state.m in
@@ -64,15 +83,15 @@ let rec interp (init_state : state) : state =
     let instruction = decode_instruction instruction_word in
     let updated_state =
       match instruction with
-      (* | Add (r1, r2, r3) -> step_add init_state r1 r2 r3 *)
+      | Add (r1, r2, r3) -> step_add init_state r1 r2 r3
       (* | Beq (r1, r2, imm) -> step_beq init_state r1 r2 imm *)
       (* | Jr r -> step_jr init_state r *)
       (* | Jal imm -> step_jal init_state imm *)
-      (* | Li (r, imm) -> step_li init_state r imm *)
+      | Li (r, imm) -> step_li init_state r imm
       | Lui (r, imm) -> step_lui init_state r imm
-      (* | Ori (r1, r2, imm) -> step_ori init_state r1 r2 imm *)
-      (* | Lw (r1, r2, imm) -> step_lw init_state r1 r2 imm *)
-      (* | Sw (r1, r2, imm) -> step_sw init_state r1 r2 imm *)
+      | Ori (r1, r2, imm) -> step_ori init_state r1 r2 imm
+      | Lw (r1, r2, imm) -> step_lw init_state r1 r2 imm
+      | Sw (r1, r2, imm) -> step_sw init_state r1 r2 imm
       | _ -> raise FatalError
     in
     let updated_state = { updated_state with pc = add updated_state.pc 4l } in
